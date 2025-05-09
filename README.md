@@ -150,3 +150,136 @@ python check_env.py > check_env_log.txt
 
 echo "✅ Job complete."
 ```
+
+# 🚀 LLM + GNN Multimodal Pipeline (HPC SLURM-Compatible)
+
+This repository provides a ready-to-run, SLURM-compatible configuration for executing a multimodal deep learning pipeline integrating:
+
+- ✅ PyTorch (CUDA 11.2)
+- ✅ SentenceTransformers
+- ✅ Torch Geometric (GNN)
+- ✅ TensorFlow (GPU check)
+- ✅ HuggingFace Hub
+- ✅ MLP, GNN, and Transformer-based model runs
+
+---
+
+## 📂 Repository Structure
+
+```
+.
+├── requirements.txt              # Core Python dependencies
+├── requirements_utf8.txt         # Auto-generated UTF-8 copy
+├── check_llm_gpu.py              # Checks GPU and LLM functionality
+├── run_mlp.py                    # Simple MLP model demo
+├── run_gnn.py                    # GNN model using torch_geometric
+├── run_transformer.py           # Transformer inference with SentenceTransformer
+├── check_env.py                 # Debug versions of major packages
+├── setup_once.slurm             # First-time SLURM setup and run script
+├── run_only.slurm               # Lightweight SLURM script for re-runs
+└── logs/
+    └── llm_pipeline_<job_id>.log
+```
+
+---
+
+## ⚙️ SLURM Script Usage Guide
+
+### `setup_once.slurm`
+> **Use this script only for the first run** (or after environment reset)
+
+- Converts `requirements.txt` to UTF-8 (if needed).
+- Installs all dependencies via pip.
+- Removes broken or incompatible PyG packages.
+- Installs `torch-scatter`, `torch-sparse`, `torch-cluster`, and `torch-spline-conv` from PyG binary wheels.
+- Ensures compatibility with `torch==1.9.1 + cu112`.
+- Runs the full pipeline and records logs.
+
+### `run_only.slurm`
+> **Use this script for all subsequent runs**
+
+- Skips all installation and cleanup.
+- Directly runs model scripts and logs results.
+- Faster and suitable for multiple experiments.
+
+---
+
+## 📋 Output Logs
+
+All SLURM outputs are written to:
+
+```
+logs/llm_pipeline_<job_id>.log
+```
+
+Environment check outputs are stored in:
+
+```
+check_env_log.txt
+```
+
+---
+
+## 💡 Example SLURM Submission
+
+```bash
+sbatch setup_once.slurm     # For first-time setup
+sbatch run_only.slurm       # For subsequent clean runs
+```
+
+---
+
+## 🔧 Notes
+
+- Ensure you are running on a compatible HPC node (CUDA 11.2, PyTorch 1.9.1).
+- If you upgrade or change `torch`, re-run `setup_once.slurm` to refresh PyG.
+- The pipeline is modular: you can plug in your own `run_*.py` models.
+
+---
+
+## 🧪 Verified Compatibility
+
+- NVIDIA A100-SXM4 (CUDA 12.6 runtime, PyTorch 1.9.1 + cu112 compiled)
+- PyG 2.0.4 with binary wheels (avoids source compilation errors)
+- TensorFlow 2.7.0 GPU detection (optional)
+
+---
+
+## 🧠 Authors
+
+This template was created for reproducible HPC workflows using LLMs + GNNs with efficient deployment and debugging support.
+
+Feel free to customize it for your experiments.
+
+### sbatch run_only.slurm       # For subsequent clean runs
+```sh
+#!/bin/bash
+#SBATCH --nodelist=node004
+#SBATCH --job-name=llm_gnn_pipeline
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=24
+#SBATCH --time=20-00:00:00
+#SBATCH --output=logs/llm_pipeline_run_%j.log
+
+echo "===== NVIDIA-SMI ====="
+nvidia-smi
+echo "======================"
+
+# ✅ Load environment (no reinstall)
+module purge
+module load pytorch-extra-py39-cuda11.2-gcc9
+module load tensorflow2-py39-cuda11.2-gcc9/2.7.0
+module load ml-pythondeps-py39-cuda11.2-gcc9/4.8.1
+
+# 🏃‍♂️ Run only the core pipeline
+echo "🚀 Running LLM + GNN pipeline..."
+python check_llm_gpu.py
+python run_mlp.py
+python run_gnn.py
+python run_transformer.py
+python check_env.py > check_env_log.txt
+
+echo "✅ Job complete."
+```
